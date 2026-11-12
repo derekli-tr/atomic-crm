@@ -38,6 +38,16 @@ supabase-migrate-database: ## apply the migrations to the database
 supabase-reset-database: ## reset (and clear!) the database
 	npx supabase db reset
 
+SEED_DB_URL ?= postgresql://postgres:postgres@127.0.0.1:54322/postgres
+SEED_DB_CONTAINER ?= supabase_db_$(shell sed -n 's/^project_id *= *"\(.*\)"/\1/p' supabase/config.toml)
+
+seed-test-data: ## load the reproducible, idempotent test data (run after the first signup; override SEED_DB_URL for another database)
+	@if command -v psql >/dev/null 2>&1; then \
+		psql "$(SEED_DB_URL)" -v ON_ERROR_STOP=1 -q -f supabase/seed-data/test_data.sql; \
+	else \
+		docker exec -i $(SEED_DB_CONTAINER) psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/seed-data/test_data.sql; \
+	fi
+
 start-app: ## start the app locally
 	npm run dev
 
